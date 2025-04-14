@@ -8,21 +8,22 @@ class UserModel {
   String gender;
   String dateOfBirth;
   String about;
-
-  UserModel(this.name, this.email, this.phone, this.rollNumber, this.course, this.semester, this.gender, this.dateOfBirth, this.about);
+  String? uid;
+  UserModel({required this.name, required this.email, required this.phone, required this.rollNumber, required this.course, required this.semester, required this.gender, required this.dateOfBirth, required this.about,  this.uid});
 
   // Named factory constructor
   factory UserModel.fromMap(Map<String, dynamic> data) {
     return UserModel(
-      data['name'] ?? '',
-      data['email'] ?? '',
-      data['phone'] ?? '',
-      data['rollNumber'] ?? '',
-      data['course'] ?? '',
-      data['semester'] ?? '',
-      data['gender'] ?? '',
-      data['dateOfBirth'] ?? '',
-      data['about'] ?? '',
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      rollNumber: data['rollNumber'] ?? '',
+      course: data['course'] ?? '',
+      semester: data['semester'] ?? '',
+      gender: data['gender'] ?? '',
+      dateOfBirth: data['dateOfBirth'] ?? '',
+      about: data['about'] ?? '',
+      uid: data['uid'] ?? '',
     );
   }
 

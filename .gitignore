@@ -1,1 +1,7 @@
 edusphere_mobile/lib/firebase_options.dart
+edusphere-web/node_modules/
+edusphere-server/node_modules/
+edusphere-web/.env.local
+edusphere-web/app/firebase
+edusphere-server/.env
+edusphere-server/edusphere-617d0-firebase-adminsdk-fbsvc-3f6b72539f.json

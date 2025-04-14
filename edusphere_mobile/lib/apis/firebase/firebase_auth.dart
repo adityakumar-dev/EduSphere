@@ -7,9 +7,15 @@ class FirebaseAuthApi {
    return credential.user != null;
   }
 
-  static Future<bool> signUpWithEmail(String email, String password) async {
+  static Future<Map<String, dynamic>> signUpWithEmail(String email, String password) async {
+    try{
+
+    
     final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
-    return credential.user != null;
+    return {'uid': credential.user?.uid, 'email': credential.user?.email};
+  }catch(e){
+    return {'error': e.toString()};
+  }
   }
 
   static Future<bool> signInWithGoogle() async {

@@ -1,11 +1,17 @@
+import 'dart:convert';
+
 import 'package:edusphere_mobile/apis/firebase/firebase_auth.dart';
 import 'package:edusphere_mobile/apis/firebase/firebase_db.dart';
 import 'package:edusphere_mobile/models/user_model.dart';
+import 'package:edusphere_mobile/providers/user_models_provider.dart';
 import 'package:edusphere_mobile/screens/home/home_screen.dart';
 import 'package:edusphere_mobile/utils/constants/app_constants.dart';
+import 'package:edusphere_mobile/utils/constants/server_endpoints.dart';
 import 'package:edusphere_mobile/utils/ui/colors.dart';
 import 'package:edusphere_mobile/utils/ui/ui_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 class FormsDetailsScreen extends StatefulWidget {
   static const String routeName = '/forms-details';
@@ -15,13 +21,14 @@ class FormsDetailsScreen extends StatefulWidget {
   State<FormsDetailsScreen> createState() => _FormsDetailsScreenState();
 }
 
-class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTickerProviderStateMixin {
+class _FormsDetailsScreenState extends State<FormsDetailsScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _rollNumberController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _courseController = TextEditingController();
-  final _semesterController = TextEditingController();
+  // final _nameController = TextEditingController();
+  // final _rollNumberController = TextEditingController();
+  // final _phoneController = TextEditingController();
+  // final _courseController = TextEditingController();
+  // final _semesterController = TextEditingController();
   bool _isLoading = false;
   String _selectedGender = 'Male';
   DateTime? _selectedDate;
@@ -38,22 +45,32 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
       duration: const Duration(milliseconds: 800),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+  }
+
+  String generateYear() {
+    if (_selectedSemester == '1st' || _selectedSemester == '2nd') {
+      return '1';
+    } else if (_selectedSemester == '3rd' || _selectedSemester == '4th') {
+      return '2';
+    } else if (_selectedSemester == '5th' || _selectedSemester == '6th') {
+      return '3';
+    } else if (_selectedSemester == '7th' || _selectedSemester == '8th') {
+      return '4';
+    } else if (_selectedSemester == '9th' || _selectedSemester == '10th') {
+      return '5';
+    } else if (_selectedSemester == '11th' || _selectedSemester == '12th') {
+      return '6';
+    }
+    return '0';
   }
 
   @override
   void dispose() {
     _animationController.dispose();
-    _nameController.dispose();
-    _rollNumberController.dispose();
-    _phoneController.dispose();
-    _courseController.dispose();
-    _semesterController.dispose();
+
     super.dispose();
   }
 
@@ -77,32 +94,47 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
     setState(() => _isLoading = true);
 
     try {
-      Map<String, dynamic> userInfo = await FirebaseAuthApi.getUserInfo();
-      UserModel user = UserModel(
-        _nameController.text.trim(),
-        userInfo['email'],
-        _phoneController.text.trim(),
-        _rollNumberController.text.trim(),
-        _courseController.text.trim(),
-        _semesterController.text.trim(),
-        _selectedGender,
-        _selectedDate?.toIso8601String() ?? '',
-        '',
-      );
+      UserModel user = Provider.of<UserModelsProvider>(context, listen: false).data!;
+     
 
-      await FirebaseDb.createUser(userInfo['uid'], user);
-      if (mounted) {
-        // Navigator.pushReplacementNamed(context, '/home');
+      Map<String, dynamic> jsonData = {
+        'app_auth_cert': 'linmar_dev_crt',
+        'name': user.name,
+        'email': user.email,
+        'phone': user.phone,
+        'rollNumber': user.rollNumber,
+        'branchId': user.course,
+        'yearId': generateYear(),
+        'semester': user.semester,
+        'sectionId': 'A',
+        'gender': user.gender,
+        'dob': user.dateOfBirth,
+        'uid': user.uid,
+      };
+      var response = await http.post(
+        Uri.parse(ServerEndpoints.signUp),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(jsonData),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${response.body}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+    // ScaffoldMessenger.of(context)
+    //   ..hideCurrentSnackBar()
+    //   ..showSnackBar(SnackBar(content: Text(widget.uid.toString())));
   }
 
   @override
@@ -113,15 +145,15 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomCenter,
-            colors: [
-              AppColors.primaryColor.withOpacity(0.1),
-              Colors.white,
-            ],
+            colors: [AppColors.primaryColor.withOpacity(0.1), Colors.white],
           ),
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 32.0,
+            ),
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: Form(
@@ -129,7 +161,6 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                
                     const SizedBox(height: 32),
 
                     // Form Section
@@ -153,7 +184,9 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                           LinearProgressIndicator(
                             value: 0.8,
                             backgroundColor: Colors.grey[200],
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primaryColor,
+                            ),
                             minHeight: 6,
                           ),
                           const SizedBox(height: 24),
@@ -161,20 +194,25 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                           // Form Fields
                           _buildFormField(
                             "Full Name",
-                            _nameController,
                             Icons.person_outline,
+
                             (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your name';
                               }
                               return null;
                             },
+                            (value) {
+                              Provider.of<UserModelsProvider>(
+                                context,
+                                listen: false,
+                              ).setName(value);
+                            },
                           ),
                           const SizedBox(height: 16),
 
                           _buildFormField(
                             "Roll Number",
-                            _rollNumberController,
                             Icons.numbers,
                             (value) {
                               if (value == null || value.isEmpty) {
@@ -182,12 +220,17 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                               }
                               return null;
                             },
+                            (value) {
+                              Provider.of<UserModelsProvider>(
+                                context,
+                                listen: false,
+                              ).setRollNumber(value);
+                            },
                           ),
                           const SizedBox(height: 16),
 
                           _buildFormField(
                             "Phone Number",
-                            _phoneController,
                             Icons.phone_outlined,
                             (value) {
                               if (value == null || value.isEmpty) {
@@ -198,6 +241,12 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                               }
                               return null;
                             },
+                            (value) {
+                              Provider.of<UserModelsProvider>(
+                                context,
+                                listen: false,
+                              ).setPhone(value);
+                            },
                           ),
                           const SizedBox(height: 16),
 
@@ -205,7 +254,21 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                             onChanged: (String? newValue) {
                               setState(() {
                                 _selectedCourse = newValue;
+                                ScaffoldMessenger.of(
+                                  context,
+                                ).hideCurrentSnackBar();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Course: ${Provider.of<UserModelsProvider>(context, listen: false).data!.course}',
+                                    ),
+                                  ),
+                                );
                               });
+                              Provider.of<UserModelsProvider>(
+                                context,
+                                listen: false,
+                              ).setCourse(newValue ?? '');
                             },
                             value: _selectedCourse,
                             decoration: const InputDecoration(
@@ -213,12 +276,13 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                               border: InputBorder.none,
                               prefixIcon: Icon(Icons.school_outlined),
                             ),
-                            items: AppConstants.branches.map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
+                            items:
+                                AppConstants.branches.map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
                           ),
                           const SizedBox(height: 16),
 
@@ -230,18 +294,30 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                                   value: _selectedSemester,
                                   decoration: const InputDecoration(
                                     labelText: 'Semester',
-                                    // prefixIcon: Icon(Icons.calendar_today_outlined),
                                     border: InputBorder.none,
                                   ),
-                                  items: AppConstants.semesters.map((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
+                                  items:
+                                      AppConstants.semesters.map((
+                                        String value,
+                                      ) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
                                   onChanged: (String? newValue) {
                                     setState(() {
                                       _selectedSemester = newValue;
+                                      Provider.of<UserModelsProvider>(context, listen: false).setSemester(newValue ?? '');
+                                      ScaffoldMessenger.of(context)
+                                        ..hideCurrentSnackBar()
+                                        ..showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Semester: ${Provider.of<UserModelsProvider>(context, listen: false).data!.semester}',
+                                            ),
+                                          ),
+                                        );
                                     });
                                   },
                                 ),
@@ -255,16 +331,18 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                                     // prefixIcon: Icon(Icons.people_outline),
                                     border: InputBorder.none,
                                   ),
-                                  items: AppConstants.genders.map((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
+                                  items:
+                                      AppConstants.genders.map((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
                                   onChanged: (String? newValue) {
                                     if (newValue != null) {
                                       setState(() {
                                         _selectedGender = newValue;
+                                        Provider.of<UserModelsProvider>(context, listen: false).setGender(newValue ?? '');
                                       });
                                     }
                                   },
@@ -294,10 +372,7 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
 
                           // Submit Button
                           ElevatedButton(
-                            onPressed: (){
-                              Navigator.pushNamed(context, HomeScreen.routeName);
-                            },
-                            // onPressed: _isLoading ? null : _submitForm,
+                            onPressed: _isLoading ? null : _submitForm,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryColor,
                               foregroundColor: Colors.white,
@@ -307,19 +382,26 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
                               ),
                               elevation: 2,
                             ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            child:
+                                _isLoading
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Complete Profile',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  )
-                                : const Text(
-                                    'Complete Profile',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
                           ),
                         ],
                       ),
@@ -336,9 +418,9 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
 
   Widget _buildFormField(
     String label,
-    TextEditingController controller,
     IconData icon,
     String? Function(String?)? validator,
+    Function(String) onChanged,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -346,7 +428,6 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
         borderRadius: BorderRadius.circular(10),
       ),
       child: TextFormField(
-        controller: controller,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: AppColors.primaryColor),
@@ -356,9 +437,16 @@ class _FormsDetailsScreenState extends State<FormsDetailsScreen> with SingleTick
           ),
           filled: true,
           fillColor: Colors.grey[50],
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
         validator: validator,
+        onChanged: (value) {
+          onChanged(value);
+          // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
+        },
       ),
     );
   }

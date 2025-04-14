@@ -1,12 +1,16 @@
 import 'package:edusphere_mobile/apis/firebase/firebase_auth.dart';
 import 'package:edusphere_mobile/apis/firebase/firebase_db.dart';
 import 'package:edusphere_mobile/models/user_model.dart';
+import 'package:edusphere_mobile/providers/auth_state_provider.dart';
+import 'package:edusphere_mobile/providers/user_models_provider.dart';
 import 'package:edusphere_mobile/screens/auth/forms/forms_details_screen.dart';
 import 'package:edusphere_mobile/utils/ui/alert_dialog.dart';
 import 'package:edusphere_mobile/utils/ui/colors.dart';
 import 'package:edusphere_mobile/utils/ui/ui_helper.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:provider/provider.dart';
 class RegisterScreen extends StatefulWidget {
   static const String routeName = '/register';
   const RegisterScreen({super.key});
@@ -21,38 +25,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-
-  Future<void> _signUpWithEmail() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-    showProgressDialog(context, 'Checking User', 'Please wait while we are checking your account');
-    //first check existing user
-    bool isUserExists = await FirebaseAuthApi.signInWithEmail(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-    if (isUserExists) {
-      Navigator.pop(context);
-      Navigator.pushReplacementNamed(context, '/home');
-      return;
-    }
-    Navigator.pop(context);
-    showProgressDialog(context, 'Signing up', 'Please wait while we are creating your account');
-    bool isSuccess = await FirebaseAuthApi.signUpWithEmail(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-    Navigator.pop(context);
-    if (isSuccess) {
-      Navigator.pushReplacementNamed(context, '/user_info');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to sign up')),
-      );
-    }
-  }
-
+  bool _isSignUp = true;
+  
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     showProgressDialog(context, "Signing in with Google", "Please wait while we are signing in with Google");
@@ -79,6 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authStateProvider = Provider.of<AuthStateProvider>(context);
     return Scaffold(
       body: Container(
         height: double.infinity,
@@ -165,8 +140,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Name Field
-                     
-
+                      AutoSwitcher(context, _isSignUp, (value) {
+                        setState(() {
+                          _isSignUp = value;
+                        });
+                      }),
+SizedBox(height: 10,),
                         // Email Field
                         kTextFormField(
                           "Email",
@@ -216,8 +195,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // Sign Up Button
                         ElevatedButton(
-                          onPressed: (){
-                            Navigator.pushNamed(context, FormsDetailsScreen.routeName);
+                          onPressed: ()async{
+                              if(!_formKey.currentState!.validate()){
+                                return;
+                              }
+                            
+                            if(_isSignUp){
+                              await  authStateProvider.signUpWithEmail(context, _emailController.text.trim(), _passwordController.text);
+                            }else{
+                              await authStateProvider.signInWithEmail(context, _emailController.text.trim(), _passwordController.text);
+                            
+                            }
+                            // Navigator.pushNamed(context, FormsDetailsScreen.routeName);
                           },
                           // onPressed: _isLoading ? null : _signUpWithEmail,
                           style: ElevatedButton.styleFrom(
@@ -229,7 +218,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             elevation: 2,
                           ),
-                          child: _isLoading
+                          child: authStateProvider.isLoading
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
@@ -238,8 +227,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                   ),
                                 )
-                              : const Text(
-                                  'Continue With Email',
+                              :  Text(
+                                  _isSignUp ? 'Sign Up With Email' : 'Sign In With Email',
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                         ),
@@ -324,3 +313,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 }
+
+Widget AutoSwitcher(BuildContext context,bool isSignUp,Function(bool) onSwitch){
+  return Row(
+    children: [
+      SizedBox(width: 10,),
+ _buildTab(
+          context,
+          title: 'Sign Up',
+          selected: isSignUp,
+          onTap: () => onSwitch(true),
+        ),
+      SizedBox(width: 10,),
+        _buildTab(
+          context,
+          title: 'Sign In',
+          selected: !isSignUp,
+          onTap: () => onSwitch(false),
+        ),
+        SizedBox(width: 10,),
+      ],
+    );     
+ 
+}
+
+  Widget _buildTab(BuildContext context,
+      {required String title, required bool selected, required VoidCallback onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: selected ? Theme.of(context).primaryColor : Colors.grey[300]!,
+                width: 3,
+              ),
+            ),
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: selected ? Theme.of(context).primaryColor : Colors.grey[600],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+

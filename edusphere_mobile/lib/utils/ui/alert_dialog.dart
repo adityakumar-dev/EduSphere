@@ -5,12 +5,15 @@ void showProgressDialog(BuildContext context, String title , String message) {
     context: context,
     builder: (context) => Dialog(
       child: Material(
+        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
         child: Container(
+
           height: 100,
           width: 100,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
+            // borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

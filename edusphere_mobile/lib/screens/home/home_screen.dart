@@ -1,10 +1,12 @@
 import 'package:edusphere_mobile/apis/firebase/firebase_auth.dart';
+import 'package:edusphere_mobile/providers/user_models_provider.dart';
 import 'package:edusphere_mobile/screens/home/assignments/assignments_screen.dart';
 import 'package:edusphere_mobile/screens/home/settings/settings_screen.dart';
 import 'package:edusphere_mobile/utils/ui/colors.dart';
 import 'package:edusphere_mobile/utils/ui/ui_helper.dart';
 import 'package:edusphere_mobile/utils/ui/widget_appbar.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   static const String routeName = '/home';
@@ -48,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<UserModelsProvider>(context, listen: false);
     return Scaffold(
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -57,10 +60,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 // bool _isExpanded = false;
   Widget _buildHomeTab() {
+    final provider = Provider.of<UserModelsProvider>(context, listen: false);
     return CustomScrollView(
       slivers: [
         // App Bar with Greeting
-        widget_appbar(context, "Hello","Student","Welcome back, Student",showActionButton: true),
+        widget_appbar(context, "Hello",provider.data!.name,"Welcome back, ${provider.data!.name}",showActionButton: true),
 
         // Main Content
         SliverToBoxAdapter(

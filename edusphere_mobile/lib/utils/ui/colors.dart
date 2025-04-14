@@ -8,5 +8,6 @@ class AppColors {
   static const Color textColor = Color(0xFF333333);
   static const Color errorColor = Color(0xFFD32F2F);
   static const Color borderColor = Color(0xFFE0E0E0);
+  static const Color textFieldColor = Color(0xFFF5F5F5);
 }
 
