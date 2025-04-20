@@ -3,48 +3,57 @@ import { getFirebaseAdmin } from '../firebase.js';
 const admin = await getFirebaseAdmin();
 const db = admin.firestore();
 
-// Collection references
-const assignmentCollection = db.collection('assignments');
-const teacherCollection = db.collection('teachers');
+// Collection referencesconst assignmentCollection = db.collection('assignments');
 
-/**
- * Create an assignment with hierarchical structure
- * @param {string} branch - Branch name (e.g., 'Computer Science', 'Mechanical')
- * @param {string} year - Academic year (e.g., '2023-2024')
- * @param {Object} assignmentData - Assignment information
- * @returns {Promise<string>} - Assignment ID
- */
+const getAssignmentList = async (teacherId) => {
+    if (!teacherId) {
+      throw new Error("Teacher ID is required");
+    }
+  
+    try {
+      // Firestore query to filter assignments by teacherId
+      const querySnapshot = await assignmentCollection.where('teacherId', '==', teacherId).get();
+  
+      if (querySnapshot.empty) {
+        return []; // No assignments found
+      }
+  
+      // Map through the documents and return assignment data
+      const assignments = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+  
+      return assignments;
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      throw new Error(error);
+    }
+  };
+  
 const createAssignment = async (assignmentData) => {
     try {
-        // Validate required fields
-        if (!assignmentData.title || !assignmentData.description || !assignmentData.dueDate) {
+        const { title, description, dueDate, teacherId } = assignmentData;
+
+        if (!title || !description || !dueDate) {
             throw new Error('Title, description, and due date are required fields');
         }
 
-        // Check if teacher exists
-        if (assignmentData.teacherId) {
-            const teacher = await teacherCollection.doc(assignmentData.teacherId).get();
-            if (!teacher.exists) {
+        if (teacherId) {
+            const teacherDoc = await teacherCollection.doc(teacherId).get();
+            if (!teacherDoc.exists) {
                 throw new Error('Teacher not found');
             }
         }
 
-        // Prepare assignment data with timestamps
         const assignmentWithTimestamps = {
             ...assignmentData,
-            
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
-        
-        // Create assignment document in the hierarchical structure
-        const assignmentRef = await assignmentCollection
-            .doc(assignmentData.branch)
-            .collection('years')
-            .doc(assignmentData.year)
-            .collection('assignments')
-            .add(assignmentWithTimestamps);
-            
+
+        const assignmentRef = await assignmentCollection.add(assignmentWithTimestamps);
+
         return assignmentRef.id;
     } catch (error) {
         console.error('Error creating assignment:', error);
@@ -52,55 +61,17 @@ const createAssignment = async (assignmentData) => {
     }
 };
 
-/**
- * Get all assignments for a specific branch and year
- * @param {string} branch - Branch name
- * @param {string} year - Academic year
- * @returns {Promise<Array>} - Array of assignment data
- */
-const getAssignmentsByBranchAndYear = async (branch, year) => {
+const getAssignmentById = async (assignmentId) => {
     try {
-        const assignmentsSnapshot = await assignmentCollection
-            .doc(branch)
-            .collection('years')
-            .doc(year)
-            .collection('assignments')
-            .get();
-            
-        return assignmentsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-    } catch (error) {
-        console.error('Error getting assignments by branch and year:', error);
-        throw error;
-    }
-};
+        const assignmentDoc = await assignmentCollection.doc(assignmentId).get();
 
-/**
- * Get assignment by ID
- * @param {string} branch - Branch name
- * @param {string} year - Academic year
- * @param {string} assignmentId - Assignment ID
- * @returns {Promise<Object>} - Assignment data
- */
-const getAssignmentById = async (branch, year, assignmentId) => {
-    try {
-        const assignmentDoc = await assignmentCollection
-            .doc(branch)
-            .collection('years')
-            .doc(year)
-            .collection('assignments')
-            .doc(assignmentId)
-            .get();
-            
         if (!assignmentDoc.exists) {
             throw new Error('Assignment not found');
         }
-        
+
         return {
             id: assignmentDoc.id,
-            ...assignmentDoc.data()
+            ...assignmentDoc.data(),
         };
     } catch (error) {
         console.error('Error getting assignment by ID:', error);
@@ -108,124 +79,87 @@ const getAssignmentById = async (branch, year, assignmentId) => {
     }
 };
 
-/**
- * Update assignment
- * @param {string} branch - Branch name
- * @param {string} year - Academic year
- * @param {string} assignmentId - Assignment ID
- * @param {Object} updateData - Data to update
- * @returns {Promise<void>}
- */
-const updateAssignment = async (branch, year, assignmentId, updateData) => {
+const updateAssignment = async (assignmentId, updateData) => {
     try {
-        // Check if assignment exists
-        const assignmentDoc = await assignmentCollection
-            .doc(branch)
-            .collection('years')
-            .doc(year)
-            .collection('assignments')
-            .doc(assignmentId)
-            .get();
-            
+        const assignmentRef = assignmentCollection.doc(assignmentId);
+        const assignmentDoc = await assignmentRef.get();
+
         if (!assignmentDoc.exists) {
             throw new Error('Assignment not found');
         }
-        
-        // Add updated timestamp
+
         const dataWithTimestamp = {
             ...updateData,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
-        
-        await assignmentCollection
-            .doc(branch)
-            .collection('years')
-            .doc(year)
-            .collection('assignments')
-            .doc(assignmentId)
-            .update(dataWithTimestamp);
+
+        await assignmentRef.update(dataWithTimestamp);
     } catch (error) {
         console.error('Error updating assignment:', error);
         throw error;
     }
 };
 
-/**
- * Delete assignment
- * @param {string} branch - Branch name
- * @param {string} year - Academic year
- * @param {string} assignmentId - Assignment ID
- * @returns {Promise<void>}
- */
-const deleteAssignment = async (branch, year, assignmentId) => {
+const deleteAssignment = async (assignmentId) => {
     try {
-        // Check if assignment exists
-        const assignmentDoc = await assignmentCollection
-            .doc(branch)
-            .collection('years')
-            .doc(year)
-            .collection('assignments')
-            .doc(assignmentId)
-            .get();
-            
+        const assignmentRef = assignmentCollection.doc(assignmentId);
+        const assignmentDoc = await assignmentRef.get();
+
         if (!assignmentDoc.exists) {
             throw new Error('Assignment not found');
         }
-        
-        await assignmentCollection
-            .doc(branch)
-            .collection('years')
-            .doc(year)
-            .collection('assignments')
-            .doc(assignmentId)
-            .delete();
+
+        await assignmentRef.delete();
     } catch (error) {
         console.error('Error deleting assignment:', error);
         throw error;
     }
 };
 
-/**
- * Get all branches
- * @returns {Promise<Array>} - Array of branch names
- */
-const getAllBranches = async () => {
+// ✅ Submitting assignment by student
+const submitAssignment = async (assignmentId, studentId, submissionData) => {
     try {
-        const branchesSnapshot = await assignmentCollection.get();
-        return branchesSnapshot.docs.map(doc => doc.id);
+        const assignmentRef = assignmentCollection.doc(assignmentId);
+
+        const assignmentDoc = await assignmentRef.get();
+        if (!assignmentDoc.exists) {
+            throw new Error('Assignment not found');
+        }
+
+        await assignmentRef.collection('submittedBy').doc(studentId).set({
+            ...submissionData,
+            submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
     } catch (error) {
-        console.error('Error getting all branches:', error);
+        console.error('Error submitting assignment:', error);
         throw error;
     }
 };
 
-/**
- * Get all years for a specific branch
- * @param {string} branch - Branch name
- * @returns {Promise<Array>} - Array of year names
- */
-const getYearsByBranch = async (branch) => {
+const getAllSubmissions = async (assignmentId) => {
     try {
-        const yearsSnapshot = await assignmentCollection
-            .doc(branch)
-            .collection('years')
+        const submissionsSnap = await assignmentCollection
+            .doc(assignmentId)
+            .collection('submittedBy')
             .get();
-            
-        return yearsSnapshot.docs.map(doc => doc.id);
+
+        return submissionsSnap.docs.map(doc => ({
+            studentId: doc.id,
+            ...doc.data(),
+        }));
     } catch (error) {
-        console.error('Error getting years by branch:', error);
+        console.error('Error fetching submissions:', error);
         throw error;
     }
 };
 
-module.exports = {
+export const assignmentController = {
+    getAssignmentList,
     createAssignment,
-    getAssignmentsByBranchAndYear,
     getAssignmentById,
     updateAssignment,
     deleteAssignment,
-    getAllBranches,
-    getYearsByBranch
+    submitAssignment,
+    getAllSubmissions,
+    getAssignmentList,
 };
-
-

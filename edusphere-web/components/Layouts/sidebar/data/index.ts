@@ -5,62 +5,63 @@ export const NAV_DATA = [
     label: "MAIN MENU",
     items: [
       {
-        title: "Dashboard",
+        title: "Assignments",
         icon: Icons.HomeIcon,
+        url : '/dashboard/assignment',
         items: [
-          {
-            title: "eCommerce",
-            url: "/",
-          },
+          // {
+          //   title: "Check all Assignments",
+          //   url: "/",
+          // },
         ],
       },
       {
-        title: "Calendar",
-        url: "/calendar",
+        title: "Attendance",
+        url: "/attendance",
         icon: Icons.Calendar,
         items: [],
       },
       {
-        title: "Profile",
-        url: "/profile",
+        title: "Time Table",
+        url: "/dashboard/time-table",
         icon: Icons.User,
         items: [],
       },
       {
-        title: "Forms",
+        title: "Results",
         icon: Icons.Alphabet,
         items: [
-          {
-            title: "Form Elements",
-            url: "/forms/form-elements",
-          },
-          {
-            title: "Form Layout",
-            url: "/forms/form-layout",
-          },
+          // {
+          //   title: "Check all Results",
+          //   url: "/forms/form-elements",
+          // },
+          // {
+          //   title: "Form Layout",
+          //   url: "/forms/form-layout",
+          // },
         ],
       },
       {
-        title: "Tables",
-        url: "/tables",
+        title: "Settings",
+        url: "/settings",
         icon: Icons.Table,
         items: [
-          {
-            title: "Tables",
-            url: "/tables",
-          },
+          // {
+          //   title: "Tables",
+          //   url: "/tables",
+          // },
         ],
       },
-      {
-        title: "Pages",
-        icon: Icons.Alphabet,
-        items: [
-          {
-            title: "Settings",
-            url: "/pages/settings",
-          },
-        ],
-      },
+      // {
+      //   title: "Pages",
+      //   icon: Icons.Alphabet,
+      //   items: [
+      //     {
+      //       title: "Settings",
+      //       url: "/pages/settings",
+      //     },
+      //   ],
+      // },
     ],
   },
  

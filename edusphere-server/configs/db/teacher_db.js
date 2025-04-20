@@ -1,3 +1,4 @@
+import { createFolder } from '../create_directory_structure.js';
 import { getFirebaseAdmin } from '../firebase.js';
 
 const admin = await getFirebaseAdmin();
@@ -91,10 +92,39 @@ const deleteTeacher = async (teacherId) => {
         throw error;
     }
 };
+const updateCredentials = async (id, accessToken, refreshToken, scope) => {
+    const teacherRef = teachersCollection.doc(id);
+    const teacherDoc = await teacherRef.get();
+
+    if (!teacherDoc.exists) {
+        throw new Error('Teacher not found');
+    }
+
+    // Update the credentials for the teacher
+    await teacherRef.update({
+        'credentials.accessToken': accessToken,
+        'credentials.refreshToken': refreshToken,
+        'credentials.scope': scope,
+    });
+   const mainFolder = await createFolder("EduSphere_Main",accessToken)
+   const assignmentFolder = await createFolder("Assignment",accessToken,parentId)
+   const profileFolder = await createFolder("Profile",accessToken,parentId)
+   const notesFolder = await createFolder("Notes",accessToken,parentId)
+   await teacherRef.set({
+        drive : {
+            'main' : mainFolder,
+            'assignment' : assignmentFolder,
+            'profile' : profileFolder,
+            'notes' : notesFolder
+        }
+    })
+    return true;  // If the update was successful, return true
+};
 
 export {
     createTeacher,
     getTeacher,
+    updateCredentials,
     updateTeacher,
     deleteTeacher
 };

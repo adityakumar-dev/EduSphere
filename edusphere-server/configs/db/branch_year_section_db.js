@@ -2,31 +2,22 @@ import { getFirebaseAdmin } from '../firebase.js';
 
 const admin = await getFirebaseAdmin();
 const db = admin.firestore();
-
-const branchCollection = db.collection('branch');
-const yearCollection = db.collection('year');
-const sectionCollection = db.collection('section');
-
-// add branch if not exists
-const addBranch = async (branch) => {
-    const branchRef = branchCollection.doc(branch);
-    if(!branchRef.exists){
-        await branchCollection.doc(branch).set({});
+const  BranchYearSubjectCollection = db.collection('BranchYearSubject')
+const addBranchYearSubject = async (year, branch, subject) => {
+    if (!year || !branch || !subject) {
+      throw new Error("All fields are required");
     }
-}
-const addYear = async (year) => {
-    const yearRef = yearCollection.doc(year);
-    if(!yearRef.exists){
-        await yearCollection.doc(year).set({});
-    }
-}
-const addSection = async (section) => {
-    const sectionRef = sectionCollection.doc(section);
-    if(!sectionRef.exists){
-        await sectionCollection.doc(section).set({});
-    }
-}
+  
+    const docRef = BranchYearSubjectCollection.doc(branch);
+  
+    // Merge the subject into the correct year field
+    await docRef.set({
+      [year]: subject // subject should be an array like ['Math', 'Physics']
+    }, { merge: true }); // merge to preserve other years
+  };
+  const getBranchYearSubject = async()=>{
+    const docRef =await BranchYearSubjectCollection.get();
+  return  docRef.docs.map(doc => ({'id' : doc.id, ...doc.data()}))
+  }
 
-
-
-export { addBranch, addYear, addSection };
+export { addBranchYearSubject,getBranchYearSubject};

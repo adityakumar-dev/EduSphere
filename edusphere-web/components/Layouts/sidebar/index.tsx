@@ -23,23 +23,23 @@ export function Sidebar() {
     // );
   };
 
-  useEffect(() => {
-    // Keep collapsible open, when it's subpage is active
-    NAV_DATA.some((section) => {
-      return section.items.some((item) => {
-        return item.items.some((subItem) => {
-          if (subItem.url === pathname) {
-            if (!expandedItems.includes(item.title)) {
-              toggleExpanded(item.title);
-            }
+  // useEffect(() => {
+  //   // Keep collapsible open, when it's subpage is active
+  //   NAV_DATA.some((section) => {
+  //     return section.items.some((item) => {
+  //       return item.items.some((subItem) => {
+  //         if (subItem.url === pathname) {
+  //           if (!expandedItems.includes(item.title)) {
+  //             toggleExpanded(item.title);
+  //           }
 
-            // Break the loop
-            return true;
-          }
-        });
-      });
-    });
-  }, [pathname]);
+  //           // Break the loop
+  //           return true;
+  //         }
+  //       });
+  //     });
+  //   });
+  // }, [pathname]);
 
   return (
     <>
@@ -69,7 +69,7 @@ export function Sidebar() {
               onClick={() => isMobile && toggleSidebar()}
               className="px-0 py-2.5 min-[850px]:py-0"
             >
-              {/* <Logo /> */}
+              <p className="text-2xl font-bold">EduSphere</p>
             </Link>
 
             {isMobile && (
@@ -121,24 +121,6 @@ export function Sidebar() {
                               />
                             </MenuItem>
 
-                            {expandedItems.includes(item.title) && (
-                              <ul
-                                className="ml-9 mr-0 space-y-1.5 pb-[15px] pr-0 pt-2"
-                                role="menu"
-                              >
-                                {item.items.map((subItem) => (
-                                  <li key={subItem.title} role="none">
-                                    <MenuItem
-                                      as="link"
-                                      href={subItem.url}
-                                      isActive={pathname === subItem.url}
-                                    >
-                                      <span>{subItem.title}</span>
-                                    </MenuItem>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
                           </div>
                         ) : (
                           (() => {
